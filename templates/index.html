@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>نظام الحضور والانصراف</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1a73e8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, sans-serif;
+            background: #f0f2f5;
+            color: #333;
+            min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #1a73e8, #0d47a1);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .header h1 { font-size: 20px; margin-bottom: 5px; }
+        .header .date { font-size: 14px; opacity: 0.9; }
+        .tabs {
+            display: flex;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 70px;
+            z-index: 99;
+        }
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        .tab.active {
+            color: #1a73e8;
+            border-bottom-color: #1a73e8;
+        }
+        .content { padding: 15px; max-width: 600px; margin: 0 auto; }
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .stat-card .number {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a73e8;
+        }
+        .stat-card .label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+        .stat-card.present .number { color: #34a853; }
+        .stat-card.absent .number { color: #ea4335; }
+        .card {
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .emp-card {
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .emp-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+            flex-shrink: 0;
+        }
+        .emp-info { flex: 1; }
+        .emp-name { font-weight: 600; font-size: 15px; }
+        .emp-dept { font-size: 12px; color: #888; }
+        .emp-times {
+            display: flex;
+            gap: 15px;
+            margin-top: 5px;
+        }
+        .emp-time {
+            font-size: 12px;
+            color: #666;
+        }
+        .emp-time span { font-weight: 600; }
+        .emp-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-present {
+            background: #e6f4ea;
+            color: #34a853;
+        }
+        .status-absent {
+            background: #fce8e6;
+            color: #ea4335;
+        }
+        .date-picker {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .date-picker input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            background: white;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: #1a73e8;
+            color: white;
+        }
+        .btn-success {
+            background: #34a853;
+            color: white;
+        }
+        .btn-danger {
+            background: #ea4335;
+            color: white;
+        }
+        .btn:active { transform: scale(0.95); }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+        .add-form {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .sync-btn {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .event-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .event-item:last-child { border-bottom: none; }
+        .event-time { font-weight: 600; color: #1a73e8; font-size: 16px; }
+        .event-name { font-size: 14px; color: #333; }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+        .empty-state .icon { font-size: 48px; margin-bottom: 10px; }
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #ea4335;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 5px;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 14px;
+            z-index: 1000;
+            display: none;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>نظام الحضور والانصراف</h1>
+        <div class="date" id="todayDate"></div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('attendance')">الحضور</div>
+        <div class="tab" onclick="switchTab('employees')">الموظفين</div>
+        <div class="tab" onclick="switchTab('events')">السجل</div>
+    </div>
+
+    <!-- Attendance Tab -->
+    <div class="content tab-content" id="tab-attendance">
+        <div class="date-picker">
+            <input type="date" id="attendanceDate" onchange="loadAttendance()">
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="number" id="totalCount">0</div>
+                <div class="label">الكل</div>
+            </div>
+            <div class="stat-card present">
+                <div class="number" id="presentCount">0</div>
+                <div class="label">حاضر</div>
+            </div>
+            <div class="stat-card absent">
+                <div class="number" id="absentCount">0</div>
+                <div class="label">غائب</div>
+            </div>
+        </div>
+
+        <div id="attendanceList"></div>
+    </div>
+
+    <!-- Employees Tab -->
+    <div class="content tab-content" id="tab-employees" style="display:none">
+        <div class="add-form">
+            <div class="section-title">اضافة موظف</div>
+            <div class="form-group">
+                <label>رقم الموظف</label>
+                <input type="text" id="empId" placeholder="مثال: 3">
+            </div>
+            <div class="form-group">
+                <label>اسم الموظف</label>
+                <input type="text" id="empName" placeholder="مثال: أحمد محمد">
+            </div>
+            <div class="form-group">
+                <label>القسم</label>
+                <input type="text" id="empDept" placeholder="مثال: المبيعات">
+            </div>
+            <button class="btn btn-success" style="width:100%" onclick="addEmployee()">اضافة</button>
+        </div>
+
+        <div class="section-title">الموظفين المسجلين</div>
+        <div id="employeesList"></div>
+    </div>
+
+    <!-- Events Tab -->
+    <div class="content tab-content" id="tab-events" style="display:none">
+        <div class="date-picker">
+            <input type="date" id="eventsDate" onchange="loadEvents()">
+        </div>
+        <div class="card" id="eventsList"></div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('attendanceDate').value = today;
+        document.getElementById('eventsDate').value = today;
+        document.getElementById('todayDate').textContent = new Date().toLocaleDateString('ar-SA', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+        });
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+            event.target.classList.add('active');
+            document.getElementById('tab-' + tab).style.display = 'block';
+
+            if (tab === 'attendance') loadAttendance();
+            if (tab === 'employees') loadEmployees();
+            if (tab === 'events') loadEvents();
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 3000);
+        }
+
+        const colors = ['#1a73e8','#34a853','#ea4335','#fbbc04','#9c27b0','#ff5722','#00bcd4','#795548'];
+
+        async function loadAttendance() {
+            const date = document.getElementById('attendanceDate').value;
+            const resp = await fetch('/api/attendance?date=' + date);
+            const data = await resp.json();
+
+            let total = data.length;
+            let present = data.filter(d => d.status === 'حاضر').length;
+            let absent = total - present;
+
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('presentCount').textContent = present;
+            document.getElementById('absentCount').textContent = absent;
+
+            if (total === 0) {
+                document.getElementById('attendanceList').innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📋</div>
+                        <div>لا يوجد موظفين مسجلين</div>
+                    </div>`;
+                return;
+            }
+
+            let html = '';
+            data.forEach((emp, i) => {
+                const color = colors[i % colors.length];
+                const initial = emp.name.charAt(0);
+                const statusClass = emp.status === 'حاضر' ? 'status-present' : 'status-absent';
+                html += `
+                <div class="card">
+                    <div class="emp-card">
+                        <div class="emp-avatar" style="background:${color}">${initial}</div>
+                        <div class="emp-info">
+                            <div class="emp-name">${emp.name}</div>
+                            <div class="emp-dept">${emp.department || 'بدون قسم'}</div>
+                            <div class="emp-times">
+                                ${emp.check_in ? `<div class="emp-time">دخول: <span>${emp.check_in}</span></div>` : ''}
+                                ${emp.check_out ? `<div class="emp-time">خروج: <span>${emp.check_out}</span></div>` : ''}
+                            </div>
+                        </div>
+                        <div class="emp-status ${statusClass}">${emp.status}</div>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('attendanceList').innerHTML = html;
+        }
+
+        async function loadEmployees() {
+            const resp = await fetch('/api/employees');
+            const data = await resp.json();
+
+            if (data.length === 0) {
+                document.getElementById('employeesList').innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">👥</div>
+                        <div>لا يوجد موظفين</div>
+                    </div>`;
+                return;
+            }
+
+            let html = '';
+            data.forEach((emp, i) => {
+                const color = colors[i % colors.length];
+                const initial = emp.name.charAt(0);
+                html += `
+                <div class="card">
+                    <div class="emp-card">
+                        <div class="emp-avatar" style="background:${color}">${initial}</div>
+                        <div class="emp-info">
+                            <div class="emp-name">${emp.name}</div>
+                            <div class="emp-dept">${emp.department || 'رقم: ' + emp.id}</div>
+                        </div>
+                        <button class="delete-btn" onclick="deleteEmployee('${emp.id}')">✕</button>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('employeesList').innerHTML = html;
+        }
+
+        async function addEmployee() {
+            const id = document.getElementById('empId').value.trim();
+            const name = document.getElementById('empName').value.trim();
+            const dept = document.getElementById('empDept').value.trim();
+
+            if (!id || !name) {
+                showToast('ادخل رقم واسم الموظف');
+                return;
+            }
+
+            await fetch('/api/employees', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({id, name, department: dept})
+            });
+
+            document.getElementById('empId').value = '';
+            document.getElementById('empName').value = '';
+            document.getElementById('empDept').value = '';
+            showToast('تمت الاضافة');
+            loadEmployees();
+        }
+
+        async function deleteEmployee(id) {
+            if (!confirm('حذف هذا الموظف؟')) return;
+            await fetch('/api/employees/' + id, {method: 'DELETE'});
+            showToast('تم الحذف');
+            loadEmployees();
+        }
+
+        async function loadEvents() {
+            const date = document.getElementById('eventsDate').value;
+            const resp = await fetch('/api/events?date=' + date);
+            const data = await resp.json();
+
+            if (data.length === 0) {
+                document.getElementById('eventsList').innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📝</div>
+                        <div>لا يوجد سجلات لهذا اليوم</div>
+                    </div>`;
+                return;
+            }
+
+            let html = '';
+            data.forEach(e => {
+                let time = '';
+                try { time = e.event_time.split('T')[1].substring(0,8); } catch(x) { time = e.event_time; }
+                html += `
+                <div class="event-item">
+                    <div>
+                        <div class="event-name">موظف رقم ${e.employee_id}</div>
+                    </div>
+                    <div class="event-time">${time}</div>
+                </div>`;
+            });
+            document.getElementById('eventsList').innerHTML = html;
+        }
+
+        // Load initial data
+        loadAttendance();
+    </script>
+</body>
+</html>
